@@ -1,0 +1,265 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+    <title>Find them all</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pixi.js/2.2.8/pixi.dev.js"></script>
+</head>
+<body>
+<script>
+    function shuffle(a) {
+        var j, x, i;
+        for (i = a.length - 1; i > 0; i--) {
+            j = Math.floor(Math.random() * (i + 1));
+            x = a[i];
+            a[i] = a[j];
+            a[j] = x;
+        }
+        return a;
+    }
+
+    // first tile picked up by the player
+    var firstTile = null;
+    // second tile picked up by the player
+    var secondTile = null;
+    // can the player pick up a tile?
+    var canPick = true;
+    // create an new instance of a pixi stage with a grey background
+    var stage = new PIXI.Stage(0x888888);
+    // create a renderer instance width=640 height=480
+    var renderer = PIXI.autoDetectRenderer(
+        window.innerWidth
+        , window.innerHeight
+    );
+    // importing a texture atlas created with texturepacker
+    var tileAtlas = ["manychat.json"];
+    // create a new loader
+    var loader = new PIXI.AssetLoader(["Antiny.png" ,...tileAtlas]);
+    // create an empty container
+    var gameContainer = new PIXI.DisplayObjectContainer();
+    // add the container to the stage
+    stage.addChild(gameContainer);
+    // add the renderer view element to the DOM
+    document.body.appendChild(renderer.view);
+    // use callback
+    loader.onComplete = onTilesLoaded
+    //begin load
+    loader.load();
+    var showConfettiAnimation = false
+    var color = [0xffffff, 0xff2a5c, 0xe4ff2a, 0xa62aff, 0x3df2da, 0xff2a9c, 0x2aff9f];
+    var xAdd = [];
+    var graphics = [];
+    var scale = [];
+    var w = 600;
+    var h = 500;
+
+
+    function animateConfetti() {
+
+        // requestAnimationFrame(animate);
+        var skew = [0.02, 0.04, 0.06, 0.08, 0.1];
+        var xPlus = [0.05, 0.1, 0.15, 0.2, 0.25];
+        for (var i = 0; i < 40; i++) {
+            var y,x;
+            var colornum = i % color.length;
+            graphics[i].clear();
+            graphics[i].beginFill(color[colornum], 1).drawRect(-5, -5, 10, 10);
+            if(graphics[i].y > h) {
+                y = -16
+                x = Math.floor(Math.random() * w) + 10;
+            } else {
+                y = graphics[i].y + 0.2 + ((i % 5) * 0.1);
+            }
+            if (graphics[i].x > w - 10) {
+                xAdd[i] = -1;
+            } else if (graphics[i].x < 10) {
+                xAdd[i] = 1;
+            }
+            if(xAdd[i] === -1) {
+                x = graphics[i].x - xPlus[i % 5];
+            } else {
+                x = graphics[i].x + xPlus[i % 5];
+            }
+            graphics[i].scale.x = scale[i];
+            graphics[i].scale.y = scale[i];
+            graphics[i].position.x = x;
+            graphics[i].position.y = y;
+            // graphics[i].scale.y += i % 2 === 0 ? scale[i % 5] : scale[i % 5] * -1;
+            graphics[i].rotation += i % 2 === 0 ? (0.01 + ((i % 5) * 0.01)) : (0.01 + ((i % 5) * -0.01));
+        }
+    }
+
+    var confettiContainer = new PIXI.Sprite()
+    confettiContainer.alpha = 0
+
+    function onTilesLoaded() {
+
+
+        // choose 8 random tile images
+        const elementsInRow = 4
+        const elementsInColumn = 4
+        const TOTAL_IMAGES = 11
+        const allTiles = []
+        const TILE_COUNT = 8
+
+        for (let i = 0; i < TOTAL_IMAGES; i++) {
+            allTiles.push(i)
+        }
+
+        shuffle(allTiles)
+
+        const chosenTiles = allTiles.slice(0, TILE_COUNT)
+        const allChosenTiles = chosenTiles.concat(chosenTiles)
+
+        shuffle(allChosenTiles)
+
+        const stageWidth = renderer.width
+        const stageHeight = renderer.height
+
+        var guessed = 0
+
+        const elementWidth = (stageWidth / elementsInRow) - 1
+        const elementHeight = (stageHeight / elementsInColumn) - 1
+        const elementSize = ((elementWidth >= elementHeight) ? elementHeight : elementWidth)
+        // console.log(PIXI.utils.TextureCache)
+        const antonyWinSprite = new PIXI.Sprite.fromImage("Antiny.png")
+        antonyWinSprite.width = elementsInRow * elementSize
+        antonyWinSprite.height = elementsInColumn * elementSize
+        console.log(antonyWinSprite)
+        gameContainer.addChild(antonyWinSprite, 0)
+        antonyWinSprite.alpha = 0
+        gameContainer.addChild(confettiContainer);
+
+
+
+        for (var i = 0; i < 40; i++) {
+            var colornum = i % color.length
+            scale.push(((Math.floor(Math.random() * 4) + 8) / 10));
+            var x = Math.floor(Math.random() * w) + 10
+            var y = Math.floor(Math.random() * h)
+            xAdd.push(i % 2 === 0 ? 1 : -1);
+            var graphic = new PIXI.Graphics()
+            graphic.beginFill(color[colornum], 1)
+            graphic.drawRect(-5, -5, 10, 10)
+
+            graphics.push(graphic);
+            graphics[i].position.x = x;
+            graphics[i].position.y = y;
+            graphics[i].scale.x = scale[i];
+            graphics[i].scale.y = scale[i];
+            // graphics[i].skew.y = i % 10 * 0.1;
+            graphics[i].rotation = 0.1 + ((i % 5) * 0.1);
+            confettiContainer.addChild(graphics[i]);
+        }
+
+        for (i = 0; i < elementsInRow; i++) {
+            for (j = 0; j < elementsInColumn; j++) {
+                const chosenTile = allChosenTiles.pop()
+
+                const tile = PIXI.Sprite.fromFrame(chosenTile);
+                // buttonmode+interactive = acts like a button
+                tile.buttonMode = true;
+                tile.interactive = true;
+                tile.width = elementSize - 4;
+                tile.height = elementSize - 4;
+                // is the tile selected?
+                tile.isSelected = false;
+                // set a tile value
+                tile.theVal = chosenTile
+                // place the tile
+                tile.position.x = 4 + i * elementSize;
+                tile.position.y = 4 + j * elementSize;
+                // paint tile black
+                tile.tint = 0x000000;
+                // tile.tint = 0xffffff;
+
+//                 var g = new PIXI.Graphics();
+//                 g.beginFill(0x000000); // black color
+// // x, y, width, height, radius
+//                 g.drawRoundedRect(tile.x, tile.y, tile.width, tile.height, 10);
+//                 g.endFill();
+//                 tile.mask = g
+
+                // set it a bit transparent (it will look grey)
+                tile.alpha = 0.5;
+                // add the tile
+                gameContainer.addChild(tile);
+                // mouse-touch listener
+                tile.mousedown = tile.touchstart = function (data) {
+                    // can I pick a tile?
+                    if (canPick) {
+                        // is the tile already selected?
+                        if (!this.isSelected) {
+                            // set the tile to selected
+                            this.isSelected = true;
+                            // show the tile
+                            this.tint = 0xffffff;
+                            this.alpha = 1;
+                            // is it the first tile we uncover?
+                            if (firstTile == null) {
+                                firstTile = this
+                            }
+                            // this is the second tile
+                            else {
+                                secondTile = this
+                                // can't pick anymore
+                                canPick = false;
+                                // did we pick the same tiles?
+                                if (firstTile.theVal == secondTile.theVal) {
+                                    // wait a second then remove the tiles and make the player able to pick again
+                                    setTimeout(function () {
+                                        gameContainer.removeChild(firstTile);
+                                        gameContainer.removeChild(secondTile);
+                                        firstTile = null;
+                                        secondTile = null;
+                                        canPick = true;
+
+                                        guessed++;
+
+                                        console.log(guessed, guessed == TILE_COUNT)
+                                        if (guessed === TILE_COUNT) {
+                                            antonyWinSprite.alpha = 1
+                                            confettiContainer.alpha = 1
+                                            showConfettiAnimation = true
+                                        }
+                                    }, 1000);
+                                }
+                                // we picked different tiles
+                                else {
+                                    // wait a second then cover the tiles and make the player able to pick again
+                                    setTimeout(function () {
+                                        firstTile.isSelected = false
+                                        secondTile.isSelected = false
+                                        firstTile.tint = 0x000000;
+                                        secondTile.tint = 0x000000;
+                                        firstTile.alpha = 0.5;
+                                        secondTile.alpha = 0.5;
+                                        firstTile = null;
+                                        secondTile = null;
+                                        canPick = true
+                                    }, 1000);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        requestAnimFrame(animate);
+    }
+
+    function animate() {
+        if(showConfettiAnimation)requestAnimationFrame(animateConfetti)
+        requestAnimFrame(animate);
+        renderer.render(stage);
+    }
+</script>
+</body>
+</html>
